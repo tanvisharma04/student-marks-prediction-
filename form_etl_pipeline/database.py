@@ -1,31 +1,36 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, Float
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@127.0.0.1:5432/student_marks")
+# Connection string matching Docker container credentials
+DATABASE_URL = "postgresql://user:password@127.0.0.1:5432/student_marks"
 
+# Create engine and session maker
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# 1. RAW DATA TABLE (Preserves raw JSON payload)
+# --- Database Models ---
+
 class RawFormResponse(Base):
+    """Stores the raw, unedited JSON webhook payload from Google Forms"""
     __tablename__ = "raw_form_responses"
-
+    
     id = Column(Integer, primary_key=True, index=True)
-    received_at = Column(DateTime, default=datetime.utcnow)
     payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-# 2. CLEANED DATA TABLE (Structured & Validated)
 class CleanedFormResponse(Base):
+    """Stores cleaned data and ML predictions"""
     __tablename__ = "cleaned_form_responses"
-
+    
     id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String(100), nullable=False)
+    email = Column(String(100))
+    study_hours = Column(Float, nullable=False)
+    marks_predicted = Column(Float, nullable=False)
     processed_at = Column(DateTime, default=datetime.utcnow)
-    full_name = Column(String, nullable=True)
-    email = Column(String, nullable=True)
-    age = Column(Integer, nullable=True)
-    income = Column(Float, nullable=True)
 
+# Auto-create tables in PostgreSQL when this file is imported
 Base.metadata.create_all(bind=engine)
