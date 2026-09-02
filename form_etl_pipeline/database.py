@@ -22,14 +22,19 @@ class RawFormResponse(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class CleanedFormResponse(Base):
-    """Stores cleaned data and ML predictions"""
+    """Stores raw Google Form responses prior to cleaning/predictions"""
     __tablename__ = "cleaned_form_responses"
     
     id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String(100), nullable=False)
-    email = Column(String(100))
-    study_hours = Column(Float, nullable=False)
-    marks_predicted = Column(Float, nullable=False)
+    university_roll_no = Column(String(100), nullable=True)
+    previous_semester_sgpa = Column(String(100), nullable=True)
+    previous_semester_attendance = Column(String(100), nullable=True)
+    average_study_per_day = Column(String(100), nullable=True)
+    when_do_you_start_to_study_for_exam = Column(String(200), nullable=True)
+    average_sleep = Column(String(100), nullable=True)
+    notes = Column(String(200), nullable=True)
+    social_media = Column(String(100), nullable=True)
+    exercise = Column(String(100), nullable=True)
     processed_at = Column(DateTime, default=datetime.utcnow)
 
 # Auto-create tables in PostgreSQL when this file is imported

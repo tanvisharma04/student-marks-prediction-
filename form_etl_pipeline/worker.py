@@ -1,19 +1,19 @@
-import os
-import redis
-from rq import Worker, Queue
+import sys
+from redis import Redis
+from rq import Queue, SimpleWorker  # <-- Import SimpleWorker
 
-# Connect to local Redis instance
-redis_conn = redis.Redis(host="localhost", port=6379, db=0)
-
-# Listen to default queue
-listen = ["default"]
+# Connect to Redis
+redis_conn = Redis(host="127.0.0.1", port=6379, db=0)
 
 if __name__ == "__main__":
-    # Create queues using the explicit connection parameter
-    queues = [Queue(name, connection=redis_conn) for name in listen]
+    # Specify the queues to listen on
+    listen = ["default"]
     
-    # Initialize worker with connection and queues
-    worker = Worker(queues, connection=redis_conn)
+    # SimpleWorker works on Windows by bypassing os.fork()
+    worker = SimpleWorker(
+        [Queue(name, connection=redis_conn) for name in listen],
+        connection=redis_conn
+    )
     
-    print("[WORKER READY] Listening for jobs on Redis...")
+    print("[WORKER READY] Windows-compatible SimpleWorker listening on Redis...")
     worker.work()

@@ -33,7 +33,7 @@ async def handle_form_webhook(request: Request):
         
         return {
             "status": "queued",
-            "job_id": job.get_id(),
+            "job_id": job.id,
             "message": "Form response received and added to processing queue"
         }
     except Exception as e:
