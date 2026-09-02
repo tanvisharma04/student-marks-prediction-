@@ -22,11 +22,10 @@ class RawFormResponse(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class CleanedFormResponse(Base):
-    """Stores raw Google Form responses prior to cleaning/predictions"""
+    """Stores cleaned Google Form response features"""
     __tablename__ = "cleaned_form_responses"
     
     id = Column(Integer, primary_key=True, index=True)
-    university_roll_no = Column(String(100), nullable=True)
     previous_semester_sgpa = Column(String(100), nullable=True)
     previous_semester_attendance = Column(String(100), nullable=True)
     average_study_per_day = Column(String(100), nullable=True)
@@ -37,5 +36,20 @@ class CleanedFormResponse(Base):
     exercise = Column(String(100), nullable=True)
     processed_at = Column(DateTime, default=datetime.utcnow)
 
-# Auto-create tables in PostgreSQL when this file is imported
-Base.metadata.create_all(bind=engine)
+from sqlalchemy import inspect, text
+
+def init_db():
+    try:
+        inspector = inspect(engine)
+        if "cleaned_form_responses" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("cleaned_form_responses")]
+            if "university_roll_no" in columns:
+                print("[DATABASE SETUP] Dropping 'university_roll_no' column from 'cleaned_form_responses' by recreating table...")
+                with engine.connect() as conn:
+                    conn.execute(text("DROP TABLE cleaned_form_responses CASCADE;"))
+                    conn.commit()
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[DATABASE SETUP ERROR] {e}")
+
+init_db()

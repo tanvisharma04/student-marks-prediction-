@@ -1,6 +1,14 @@
 import json
 import re
+import sys
 from database import SessionLocal, RawFormResponse, CleanedFormResponse
+
+# Ensure UTF-8 output encoding for Windows terminal
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 def normalize_key(k: str) -> str:
     """Helper to convert string key to lowercase alphanumeric string for robust matching."""
@@ -106,7 +114,7 @@ def process_form_submission(payload):
     """
     ETL Background Task executed by Redis Worker (worker.py).
     Applies data cleaning and range binning rules, then saves to PostgreSQL.
-    Semester and branch columns are dropped. Roll No is saved as Serial No from 1 onwards.
+    Semester, branch, and roll number columns are dropped. ID is stored as primary key.
     """
     db = SessionLocal()
     try:
@@ -118,11 +126,8 @@ def process_form_submission(payload):
         db.commit()
         db.refresh(raw_record)
 
-        # 2. Assign Serial No from 1 onwards for University Roll No column
-        serial_no = str(db.query(CleanedFormResponse).count() + 1)
-
-        # 3. Extract and Clean Data Fields
-        # Note: 'semester' and 'branch' columns are intentionally dropped.
+        # 2. Extract and Clean Data Fields
+        # Note: 'semester', 'branch', and 'university_roll_no' columns are omitted / dropped.
         raw_sgpa = extract_field(payload, "previous semester sgpa", "previous_semester_sgpa", "sgpa")
         raw_attendance = extract_field(payload, "previous semester attendance", "previous_semester_attendance", "attendance")
         raw_study = extract_field(payload, "average study per day", "average_study_per_day", "study hours", "study_per_day")
@@ -141,9 +146,8 @@ def process_form_submission(payload):
         social_media_cleaned = raw_social_media.strip() if raw_social_media else None
         exercise_cleaned = raw_exercise.strip() if raw_exercise else None
 
-        # 4. Save Cleaned Data to PostgreSQL DB Table
+        # 3. Save Cleaned Data to PostgreSQL DB Table
         cleaned_record = CleanedFormResponse(
-            university_roll_no=serial_no,
             previous_semester_sgpa=sgpa_cleaned,
             previous_semester_attendance=attendance_cleaned,
             average_study_per_day=study_cleaned,
@@ -155,8 +159,9 @@ def process_form_submission(payload):
         )
         db.add(cleaned_record)
         db.commit()
+        db.refresh(cleaned_record)
 
-        print(f"[TASK SUCCESS] Saved cleaned response | Serial No: {serial_no} | SGPA: {sgpa_cleaned} | Attendance: {attendance_cleaned}")
+        print(f"[TASK SUCCESS] Saved cleaned response | ID: {cleaned_record.id} | SGPA: {sgpa_cleaned} | Attendance: {attendance_cleaned}")
         return True
 
     except Exception as e:
