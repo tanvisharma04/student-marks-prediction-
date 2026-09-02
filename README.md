@@ -3,23 +3,8 @@ An asynchronous, event-driven data engineering pipeline that captures Google For
 processes and cleans payload data asynchronously using a Redis task queue, generates student mark predictions, 
 and persists both raw JSON payloads and cleaned ML-ready data into a Dockerized PostgreSQL database.
 
-Architecture Overview
-Plaintext
-┌─────────────────┐       HTTP POST       ┌──────────────────────────┐
-│   Google Form   │ ────────────────────► │  Google Apps Script      │
-└─────────────────┘                       └────────────┬─────────────┘
-                                                       │
-                                                       │ Webhook Event
-                                                       ▼
-┌─────────────────┐     Local Forward     ┌──────────────────────────┐
-│ FastAPI Server  │ ◄──────────────────── │      Ngrok Tunnel        │
-│ (API Gateway)   │                       │ (Public HTTPS Endpoint)  │
-└────────┬────────┘                       └──────────────────────────┘
-         │
-         ▼ Enqueue Task
-┌─────────────────┐
-│   Redis Queue   │ ──► SimpleWorker (RQ) ──► Dockerized PostgreSQL
-└─────────────────┘      (Async Task Execution)  (Raw Payload & ML Tables)
+
+
 Event Source: User submits a response on Google Forms.
 
 Webhook Publisher: Google Apps Script extracts response data and posts an HTTP JSON payload.
